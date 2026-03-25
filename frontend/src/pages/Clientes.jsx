@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getClientes, deleteCliente } from '../api/clientes';
-import { useAuth } from '../context/AuthContext';
 import TablaPaginada from '../components/TablaPaginada';
 
 export default function Clientes() {
-  const { token, user } = useAuth();
+  const token = null; const user = null;
   const navigate = useNavigate();
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,14 +47,14 @@ export default function Clientes() {
     },
     {
       key: '_delete', label: '',
-      render: row => user?.rol === 'dueno' ? (
+      render: row => (
         <button
           className="btn btn-danger btn-icon btn-sm"
           title="Eliminar cliente"
           onClick={e => handleDelete(e, row.id)}
           style={{ lineHeight: 1 }}
         >×</button>
-      ) : null
+      )
     },
   ];
 

@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { createCliente } from '../api/clientes';
 import { createVehiculo } from '../api/vehiculos';
 import { createOrden } from '../api/ordenes';
-import { useAuth } from '../context/AuthContext';
 
 export default function ClienteNuevo() {
-  const { token } = useAuth();
+  const token = null;
   const navigate = useNavigate();
   const [step, setStep] = useState('cliente'); // 'cliente' | 'vehiculo'
   const [clienteId, setClienteId] = useState(null);

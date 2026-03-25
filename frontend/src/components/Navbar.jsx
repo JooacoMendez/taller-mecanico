@@ -1,5 +1,4 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 
 const navItems = [
   { to: '/', icon: '📊', label: 'Dashboard', exact: true },
@@ -8,12 +7,11 @@ const navItems = [
 ];
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
+  const user = null;
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleExport = () => {
+    window.location.href = '/api/dashboard/export';
   };
 
   const initials = user?.nombre
@@ -52,6 +50,15 @@ export default function Navbar() {
           <span className="nav-link-icon">🚗</span>
           Buscar por patente
         </NavLink>
+
+        <button 
+          onClick={handleExport}
+          className="nav-link" 
+          style={{ background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%', color: 'inherit', marginTop: '8px' }}
+        >
+          <span className="nav-link-icon">📄</span>
+          Exportar a Excel
+        </button>
       </nav>
 
       <div className="sidebar-footer">
@@ -60,7 +67,6 @@ export default function Navbar() {
           <div className="user-info-name">{user?.nombre || 'Usuario'}</div>
           <div className="user-info-role">{user?.rol || ''}</div>
         </div>
-        <button className="btn-logout" onClick={handleLogout} title="Cerrar sesión">⎋</button>
       </div>
     </aside>
   );

@@ -7,13 +7,11 @@ async function listarOrdenes(req, res) {
     SELECT o.*,
       v.patente, v.marca, v.modelo,
       COALESCE(c.nombre, o.cliente_nombre) AS cliente_nombre,
-      u.nombre AS mecanico_nombre,
       COALESCE((SELECT SUM(i.subtotal) FROM items_orden i WHERE i.orden_id = o.id), 0) AS total_orden,
       COALESCE((SELECT SUM(p.monto) FROM pagos p WHERE p.orden_id = o.id), 0) AS total_pagado
     FROM ordenes o
     LEFT JOIN vehiculos v ON o.vehiculo_id = v.id
     LEFT JOIN clientes c ON o.cliente_id = c.id
-    LEFT JOIN usuarios u ON o.usuario_id = u.id
     WHERE 1=1
   `;
   const params = [];
@@ -50,14 +48,12 @@ async function obtenerOrden(req, res) {
     const ordenRes = await pool.query(`
       SELECT o.*,
         v.patente, v.marca, v.modelo, v.anio, v.km_actuales,
-        c.id AS cliente_id, 
+        c.id AS cliente_id, c.activo AS cliente_activo,
         COALESCE(c.nombre, o.cliente_nombre) AS cliente_nombre,
-        c.telefono AS cliente_telefono, c.email AS cliente_email,
-        u.nombre AS mecanico_nombre
+        c.telefono AS cliente_telefono, c.email AS cliente_email
       FROM ordenes o
       LEFT JOIN vehiculos v ON o.vehiculo_id = v.id
       LEFT JOIN clientes c ON o.cliente_id = c.id
-      LEFT JOIN usuarios u ON o.usuario_id = u.id
       WHERE o.id = $1
     `, [id]);
 
@@ -94,9 +90,9 @@ async function crearOrden(req, res) {
     const cliente_nombre = vehiculoData.rows.length > 0 ? vehiculoData.rows[0].nombre : null;
 
     const { rows } = await pool.query(
-      `INSERT INTO ordenes (vehiculo_id, usuario_id, problema_reportado, cliente_id, cliente_nombre)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [vehiculo_id, usuario_id || null, problema_reportado, cliente_id, cliente_nombre]
+      `INSERT INTO ordenes (vehiculo_id, problema_reportado, cliente_id, cliente_nombre)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [vehiculo_id, problema_reportado, cliente_id, cliente_nombre]
     );
     
     // Auto-create initial state if needed, though default is 'nueva'
@@ -122,10 +118,9 @@ async function editarOrden(req, res) {
       `UPDATE ordenes SET
         problema_reportado = COALESCE($1, problema_reportado),
         diagnostico_final = COALESCE($2, diagnostico_final),
-        usuario_id = COALESCE($3, usuario_id),
-        fecha_entrega = COALESCE($4, fecha_entrega)
-       WHERE id = $5 RETURNING *`,
-      [problema_reportado, diagnostico_final, usuario_id, fecha_entrega, id]
+        fecha_entrega = COALESCE($3, fecha_entrega)
+       WHERE id = $4 RETURNING *`,
+      [problema_reportado, diagnostico_final, fecha_entrega, id]
     );
 
     if (rows.length === 0) {
@@ -163,7 +158,7 @@ async function cambiarEstado(req, res) {
     }
 
     let extraUpdate = '';
-    if (estado === 'entregada') extraUpdate = ', fecha_entrega = NOW()';
+    if (estado === 'entregada') extraUpdate = ", fecha_entrega = datetime('now', 'localtime')";
     if (estado === 'presupuestada') extraUpdate = ', presupuesto_finalizado = false';
 
     const { rows } = await pool.query(
@@ -196,7 +191,7 @@ async function eliminarOrden(req, res) {
       return res.status(400).json({ error: 'No se puede eliminar una orden entregada' });
     }
 
-    const checkPagos = await pool.query('SELECT COUNT(*) FROM pagos WHERE orden_id = $1', [id]);
+    const checkPagos = await pool.query('SELECT COUNT(*) AS count FROM pagos WHERE orden_id = $1', [id]);
     if (parseInt(checkPagos.rows[0].count) > 0) {
       return res.status(400).json({ error: 'No se puede eliminar la orden porque tiene pagos registrados' });
     }

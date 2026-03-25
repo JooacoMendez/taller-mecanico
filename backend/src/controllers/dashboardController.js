@@ -12,13 +12,13 @@ async function getDashboard(req, res) {
       pool.query(`
         SELECT COUNT(*) AS total
         FROM ordenes
-        WHERE DATE_TRUNC('day', fecha_ingreso) = DATE_TRUNC('day', NOW())
+        WHERE date(fecha_ingreso) = date('now')
       `),
       // Ingresos del mes actual
       pool.query(`
         SELECT COALESCE(SUM(monto), 0) AS total
         FROM pagos
-        WHERE DATE_TRUNC('month', fecha_pago) = DATE_TRUNC('month', NOW())
+        WHERE strftime('%Y-%m', fecha_pago) = strftime('%Y-%m', 'now')
       `),
       // Órdenes por estado
       pool.query(`
@@ -59,4 +59,36 @@ async function getDashboard(req, res) {
   }
 }
 
-module.exports = { getDashboard };
+async function exportarExcel(req, res) {
+  try {
+    const xlsx = require('xlsx');
+
+    const [clientesRes, vehiculosRes, ordenesRes, itemsRes, pagosRes] = await Promise.all([
+      pool.query('SELECT * FROM clientes ORDER BY id'),
+      pool.query('SELECT * FROM vehiculos ORDER BY id'),
+      pool.query('SELECT * FROM ordenes ORDER BY id'),
+      pool.query('SELECT * FROM items_orden ORDER BY id'),
+      pool.query('SELECT * FROM pagos ORDER BY id')
+    ]);
+
+    const wb = xlsx.utils.book_new();
+
+    xlsx.utils.book_append_sheet(wb, xlsx.utils.json_to_sheet(clientesRes.rows), 'Clientes');
+    xlsx.utils.book_append_sheet(wb, xlsx.utils.json_to_sheet(vehiculosRes.rows), 'Vehiculos');
+    xlsx.utils.book_append_sheet(wb, xlsx.utils.json_to_sheet(ordenesRes.rows), 'Ordenes');
+    xlsx.utils.book_append_sheet(wb, xlsx.utils.json_to_sheet(itemsRes.rows), 'Items_Orden');
+    xlsx.utils.book_append_sheet(wb, xlsx.utils.json_to_sheet(pagosRes.rows), 'Pagos');
+
+    const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="BaseDeDatosTaller.xlsx"');
+    res.send(buffer);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al exportar base de datos a Excel' });
+  }
+}
+
+module.exports = { getDashboard, exportarExcel };

@@ -10,7 +10,7 @@ async function registrarPago(req, res) {
 
   try {
     // Generar número de recibo autoincremental
-    const countRes = await pool.query('SELECT COUNT(*) FROM pagos');
+    const countRes = await pool.query('SELECT COUNT(*) AS count FROM pagos');
     const nroRecibo = `REC-${String(parseInt(countRes.rows[0].count) + 1).padStart(4, '0')}`;
 
     const { rows } = await pool.query(

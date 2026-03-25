@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getCliente, deleteCliente } from '../api/clientes';
 import { updateVehiculo, deleteVehiculo } from '../api/vehiculos';
-import { useAuth } from '../context/AuthContext';
 
 export default function ClienteDetalle() {
   const { id } = useParams();
-  const { token, user } = useAuth();
+  const token = null; const user = null;
   const navigate = useNavigate();
   const [cliente, setCliente] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -82,9 +81,7 @@ export default function ClienteDetalle() {
           <h1 className="page-title">{cliente.nombre}</h1>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          {user?.rol === 'dueno' && (
-            <button className="btn btn-danger btn-sm" onClick={handleDeleteCliente}>🗑 Eliminar</button>
-          )}
+          <button className="btn btn-danger btn-sm" onClick={handleDeleteCliente}>🗑 Eliminar</button>
           <button className="btn btn-primary btn-sm" onClick={() => navigate(`/ordenes/nueva?cliente_id=${id}`)}>
             + Nueva orden
           </button>
@@ -151,8 +148,6 @@ export default function ClienteDetalle() {
                             {v.km_actuales.toLocaleString('es-AR')} km
                           </span>
                         )}
-                        {user?.rol === 'dueno' && (
-                          <>
                             <button
                               className="btn btn-secondary btn-icon btn-sm"
                               title="Editar vehículo"
@@ -163,8 +158,6 @@ export default function ClienteDetalle() {
                               title="Eliminar vehículo"
                               onClick={e => handleDeleteVehiculo(v, e)}
                             >×</button>
-                          </>
-                        )}
                       </div>
                     </div>
                   </div>

@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { registrarPago } from '../api/ordenes';
-import { useAuth } from '../context/AuthContext';
 
 export default function ModalPago({ ordenId, onClose, onSuccess }) {
-  const { token } = useAuth();
+  const token = null;
   const [form, setForm] = useState({ monto: '', forma_pago: 'efectivo' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');

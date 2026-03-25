@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { createVehiculo } from '../api/vehiculos';
 import { getClientes } from '../api/clientes';
-import { useAuth } from '../context/AuthContext';
 
 export default function VehiculoNuevo() {
-  const { token } = useAuth();
+  const token = null;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preClienteId = searchParams.get('cliente_id');

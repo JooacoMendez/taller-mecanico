@@ -2,7 +2,12 @@ const pool = require('../db/pool');
 
 async function agregarItem(req, res) {
   const { id: orden_id } = req.params;
-  const { descripcion, tipo, precio_unitario, cantidad } = req.body;
+  let { descripcion, tipo, precio_unitario, cantidad } = req.body;
+
+  if (tipo === 'mano_de_obra') {
+    descripcion = 'Mano de obra';
+    cantidad = 1;
+  }
 
   if (!descripcion || !tipo || !precio_unitario) {
     return res.status(400).json({ error: 'descripcion, tipo y precio_unitario son requeridos' });
@@ -38,7 +43,12 @@ async function agregarItem(req, res) {
 
 async function editarItem(req, res) {
   const { id } = req.params;
-  const { descripcion, tipo, precio_unitario, cantidad } = req.body;
+  let { descripcion, tipo, precio_unitario, cantidad } = req.body;
+
+  if (tipo === 'mano_de_obra') {
+    descripcion = 'Mano de obra';
+    cantidad = 1;
+  }
 
   try {
     const checkItem = await pool.query('SELECT orden_id FROM items_orden WHERE id = $1', [id]);

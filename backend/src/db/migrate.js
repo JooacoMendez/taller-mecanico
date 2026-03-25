@@ -5,7 +5,8 @@ const pool = require('./pool');
 async function migrate() {
   try {
     const sql = fs.readFileSync(path.join(__dirname, 'init.sql'), 'utf8');
-    await pool.query(sql);
+    await pool.connect();
+    await pool.dbInstance.exec(sql);
     console.log('✅ Migración completada exitosamente');
     process.exit(0);
   } catch (err) {

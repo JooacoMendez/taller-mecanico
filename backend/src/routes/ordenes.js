@@ -11,10 +11,6 @@ const {
 const { agregarItem } = require('../controllers/itemsController');
 const { registrarPago, listarPagos } = require('../controllers/pagosController');
 const { descargarRecibo, enviarRecibo } = require('../controllers/reciboController');
-const verificarToken = require('../middleware/verificarToken');
-const solodueno = require('../middleware/solodueno');
-
-router.use(verificarToken);
 
 router.get('/', listarOrdenes);
 router.get('/:id', obtenerOrden);
@@ -22,7 +18,7 @@ router.post('/', crearOrden);
 router.put('/:id', editarOrden);
 router.patch('/:id/estado', cambiarEstado);
 router.put('/:id/finalizar-presupuesto', finalizarPresupuesto);
-router.delete('/:id', solodueno, eliminarOrden);
+router.delete('/:id', eliminarOrden);
 
 // Ítems anidados
 router.post('/:id/items', agregarItem);

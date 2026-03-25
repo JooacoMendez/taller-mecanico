@@ -1,9 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext';
 import Navbar from './components/Navbar';
 
 // Pages
-import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Clientes from './pages/Clientes';
 import ClienteDetalle from './pages/ClienteDetalle';
@@ -14,9 +12,7 @@ import Ordenes from './pages/Ordenes';
 import OrdenNueva from './pages/OrdenNueva';
 import OrdenDetalle from './pages/OrdenDetalle';
 
-function ProtectedLayout({ children }) {
-  const { isAuth } = useAuth();
-  if (!isAuth) return <Navigate to="/login" replace />;
+function Layout({ children }) {
   return (
     <div className="app-layout">
       <Navbar />
@@ -26,22 +22,18 @@ function ProtectedLayout({ children }) {
 }
 
 function AppRoutes() {
-  const { isAuth } = useAuth();
-
   return (
     <Routes>
-      <Route path="/login" element={isAuth ? <Navigate to="/" replace /> : <Login />} />
-
-      <Route path="/" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
-      <Route path="/clientes" element={<ProtectedLayout><Clientes /></ProtectedLayout>} />
-      <Route path="/clientes/nuevo" element={<ProtectedLayout><ClienteNuevo /></ProtectedLayout>} />
-      <Route path="/clientes/:id" element={<ProtectedLayout><ClienteDetalle /></ProtectedLayout>} />
-      <Route path="/vehiculos/nuevo" element={<ProtectedLayout><VehiculoNuevo /></ProtectedLayout>} />
-      <Route path="/vehiculos/patente" element={<ProtectedLayout><VehiculoPatente /></ProtectedLayout>} />
-      <Route path="/vehiculos/patente/:patente" element={<ProtectedLayout><VehiculoPatente /></ProtectedLayout>} />
-      <Route path="/ordenes" element={<ProtectedLayout><Ordenes /></ProtectedLayout>} />
-      <Route path="/ordenes/nueva" element={<ProtectedLayout><OrdenNueva /></ProtectedLayout>} />
-      <Route path="/ordenes/:id" element={<ProtectedLayout><OrdenDetalle /></ProtectedLayout>} />
+      <Route path="/" element={<Layout><Dashboard /></Layout>} />
+      <Route path="/clientes" element={<Layout><Clientes /></Layout>} />
+      <Route path="/clientes/nuevo" element={<Layout><ClienteNuevo /></Layout>} />
+      <Route path="/clientes/:id" element={<Layout><ClienteDetalle /></Layout>} />
+      <Route path="/vehiculos/nuevo" element={<Layout><VehiculoNuevo /></Layout>} />
+      <Route path="/vehiculos/patente" element={<Layout><VehiculoPatente /></Layout>} />
+      <Route path="/vehiculos/patente/:patente" element={<Layout><VehiculoPatente /></Layout>} />
+      <Route path="/ordenes" element={<Layout><Ordenes /></Layout>} />
+      <Route path="/ordenes/nueva" element={<Layout><OrdenNueva /></Layout>} />
+      <Route path="/ordenes/:id" element={<Layout><OrdenDetalle /></Layout>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
@@ -50,10 +42,8 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   );
 }

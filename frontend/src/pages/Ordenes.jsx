@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getOrdenes } from '../api/ordenes';
-import { useAuth } from '../context/AuthContext';
 import BadgeEstado from '../components/BadgeEstado';
 import TablaPaginada from '../components/TablaPaginada';
 
@@ -13,7 +12,7 @@ function fmt(n) {
 }
 
 export default function Ordenes() {
-  const { token } = useAuth();
+  const token = null;
   const navigate = useNavigate();
   const [ordenes, setOrdenes] = useState([]);
   const [loading, setLoading] = useState(true);

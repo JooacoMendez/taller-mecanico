@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getVehiculoPorPatente } from '../api/vehiculos';
-import { useAuth } from '../context/AuthContext';
 import BadgeEstado from '../components/BadgeEstado';
 import TablaPaginada from '../components/TablaPaginada';
 
 export default function VehiculoPatente() {
   const { patente } = useParams();
-  const { token } = useAuth();
+  const token = null;
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(!!patente);
@@ -79,9 +78,15 @@ export default function VehiculoPatente() {
               <div className="detail-item">
                 <div className="detail-label">Cliente</div>
                 <div className="detail-value">
-                  <a href={`/clientes/${data.cliente_id}`} onClick={e => { e.preventDefault(); navigate(`/clientes/${data.cliente_id}`); }}>
-                    {data.cliente_nombre}
-                  </a>
+                  {data.cliente_activo && data.cliente_id ? (
+                    <a href={`/clientes/${data.cliente_id}`} onClick={e => { e.preventDefault(); navigate(`/clientes/${data.cliente_id}`); }}>
+                      {data.cliente_nombre}
+                    </a>
+                  ) : (
+                    <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                      {data.cliente_nombre || '—'}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="detail-item">

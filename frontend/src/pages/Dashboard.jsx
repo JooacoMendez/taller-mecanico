@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getDashboard } from '../api/dashboard';
-import { useAuth } from '../context/AuthContext';
 import BadgeEstado from '../components/BadgeEstado';
 import TablaPaginada from '../components/TablaPaginada';
 
@@ -15,7 +14,7 @@ function fmtDate(d) {
 }
 
 export default function Dashboard() {
-  const { token } = useAuth();
+  const token = null;
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

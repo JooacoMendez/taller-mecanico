@@ -7,16 +7,12 @@ const {
   editarVehiculo,
   eliminarVehiculo,
 } = require('../controllers/vehiculosController');
-const verificarToken = require('../middleware/verificarToken');
-const solodueno = require('../middleware/solodueno');
-
-router.use(verificarToken);
 
 router.get('/', listarVehiculos);
 router.get('/patente/:patente', buscarPorPatente);
 router.get('/:id', obtenerVehiculo);
 router.post('/', crearVehiculo);
 router.put('/:id', editarVehiculo);
-router.delete('/:id', solodueno, eliminarVehiculo);
+router.delete('/:id', eliminarVehiculo);
 
 module.exports = router;

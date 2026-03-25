@@ -20,10 +20,14 @@ async function obtenerVehiculo(req, res) {
   const { id } = req.params;
   try {
     const { rows } = await pool.query(`
-      SELECT v.*, c.nombre AS cliente_nombre, c.telefono AS cliente_telefono, c.email AS cliente_email
+      SELECT v.*, 
+        CASE WHEN c.activo = 1 THEN c.nombre ELSE NULL END AS cliente_nombre,
+        CASE WHEN c.activo = 1 THEN c.telefono ELSE NULL END AS cliente_telefono,
+        CASE WHEN c.activo = 1 THEN c.email ELSE NULL END AS cliente_email,
+        c.activo AS cliente_activo
       FROM vehiculos v
       JOIN clientes c ON v.cliente_id = c.id
-      WHERE v.id = $1 AND v.activo = true
+      WHERE v.id = $1 AND v.activo = 1
     `, [id]);
 
     if (rows.length === 0) {
@@ -41,7 +45,11 @@ async function buscarPorPatente(req, res) {
   const patenteLimpia = patente.replace(/\s+/g, '').toUpperCase();
   try {
     const vehiculoRes = await pool.query(`
-      SELECT v.*, c.nombre AS cliente_nombre, c.telefono AS cliente_telefono, c.email AS cliente_email
+      SELECT v.*, 
+        CASE WHEN c.activo = 1 THEN c.nombre ELSE NULL END AS cliente_nombre,
+        CASE WHEN c.activo = 1 THEN c.telefono ELSE NULL END AS cliente_telefono,
+        CASE WHEN c.activo = 1 THEN c.email ELSE NULL END AS cliente_email,
+        c.activo AS cliente_activo
       FROM vehiculos v
       LEFT JOIN clientes c ON v.cliente_id = c.id
       WHERE REPLACE(v.patente, ' ', '') = $1
@@ -57,7 +65,6 @@ async function buscarPorPatente(req, res) {
 
     const ordenesRes = await pool.query(`
       SELECT o.*,
-        u.nombre AS mecanico_nombre,
         COALESCE(
           (SELECT SUM(p.monto) FROM pagos p WHERE p.orden_id = o.id), 0
         ) AS total_pagado,
@@ -65,7 +72,6 @@ async function buscarPorPatente(req, res) {
           (SELECT SUM(i.subtotal) FROM items_orden i WHERE i.orden_id = o.id), 0
         ) AS total_orden
       FROM ordenes o
-      LEFT JOIN usuarios u ON o.usuario_id = u.id
       WHERE o.vehiculo_id IN (
         SELECT id FROM vehiculos WHERE REPLACE(patente, ' ', '') = $1
       )
@@ -159,7 +165,7 @@ async function eliminarVehiculo(req, res) {
     }
 
     const { rowCount } = await pool.query(
-      `UPDATE vehiculos SET activo = false WHERE id = $1`,
+      `UPDATE vehiculos SET activo = false, cliente_id = NULL WHERE id = $1`,
       [id]
     );
 

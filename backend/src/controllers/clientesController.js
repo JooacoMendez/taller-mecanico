@@ -3,11 +3,11 @@ const pool = require('../db/pool');
 async function listarClientes(req, res) {
   try {
     const { search } = req.query;
-    let query = 'SELECT * FROM clientes';
+    let query = 'SELECT * FROM clientes WHERE activo = true';
     const params = [];
 
     if (search) {
-      query += ' WHERE nombre ILIKE $1 OR telefono ILIKE $1 OR email ILIKE $1';
+      query += ' AND (nombre LIKE $1 OR telefono LIKE $1 OR email LIKE $1)';
       params.push(`%${search}%`);
     }
 
@@ -29,6 +29,11 @@ async function obtenerCliente(req, res) {
     const clienteRes = await pool.query('SELECT * FROM clientes WHERE id = $1', [id]);
     if (clienteRes.rows.length === 0) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
+    }
+
+    const cliente = clienteRes.rows[0];
+    if (!cliente.activo) {
+      return res.status(404).json({ error: 'Este cliente ha sido eliminado y su información personal ya no es accesible.' });
     }
 
     const vehiculosRes = await pool.query(
@@ -101,10 +106,11 @@ async function eliminarCliente(req, res) {
       });
     }
 
-    // Desvincular vehículos para preservar el historial de órdenes entregadas
-    await pool.query('UPDATE vehiculos SET cliente_id = NULL WHERE cliente_id = $1', [id]);
+    // Soft-delete al cliente
+    const { rowCount } = await pool.query('UPDATE clientes SET activo = false WHERE id = $1', [id]);
 
-    const { rowCount } = await pool.query('DELETE FROM clientes WHERE id = $1', [id]);
+    // Soft-delete también a sus vehículos asociados para que no figuren en las listas activas (y los dejamos huérfanos)
+    await pool.query('UPDATE vehiculos SET activo = false, cliente_id = NULL WHERE cliente_id = $1', [id]);
 
     if (rowCount === 0) {
       return res.status(404).json({ error: 'Cliente no encontrado' });
@@ -113,7 +119,7 @@ async function eliminarCliente(req, res) {
     res.json({ message: 'Cliente eliminado correctamente' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Error al eliminar cliente' });
+    res.status(500).json({ error: err.message || 'Error al eliminar cliente' });
   }
 }
 

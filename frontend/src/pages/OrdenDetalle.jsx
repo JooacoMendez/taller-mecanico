@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOrden, cambiarEstadoOrden, addItem, deleteItem, deleteOrden, finalizarPresupuesto } from '../api/ordenes';
-import { useAuth } from '../context/AuthContext';
 import BadgeEstado from '../components/BadgeEstado';
 import ModalPago from '../components/ModalPago';
 
@@ -18,7 +17,7 @@ function fmtDate(d) {
 
 export default function OrdenDetalle() {
   const { id } = useParams();
-  const { token, user } = useAuth();
+  const token = null; const user = null;
   const navigate = useNavigate();
 
   const [orden, setOrden] = useState(null);
@@ -117,7 +116,7 @@ export default function OrdenDetalle() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          {user?.rol === 'dueno' && orden.estado !== 'entregada' && (!orden.pagos || orden.pagos.length === 0) && (
+          {orden.estado !== 'entregada' && (!orden.pagos || orden.pagos.length === 0) && (
             <button className="btn btn-danger btn-sm" onClick={handleDeleteOrden}>🗑 Eliminar</button>
           )}
           <button 
@@ -164,20 +163,20 @@ export default function OrdenDetalle() {
           <div className="detail-item">
             <div className="detail-label">Cliente</div>
             <div className="detail-value">
-              {orden.cliente_id ? (
+              {orden.cliente_id && orden.cliente_activo ? (
                 <a href={`/clientes/${orden.cliente_id}`} onClick={e => { e.preventDefault(); navigate(`/clientes/${orden.cliente_id}`); }}>
                   {orden.cliente_nombre}
                 </a>
               ) : (
-                <span style={{ color: 'var(--text-muted)' }} title="Este cliente ha sido eliminado del sistema">
-                  {orden.cliente_nombre || 'Cliente Anónimo'} <span style={{ fontSize: '0.8em', fontStyle: 'italic' }}>(Eliminado)</span>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  {orden.cliente_nombre || 'Cliente Anónimo'} <span style={{ fontSize: '0.8em', fontStyle: 'italic', color: 'var(--text-muted)' }}>(Eliminado)</span>
                 </span>
               )}
             </div>
           </div>
           <div className="detail-item">
             <div className="detail-label">Teléfono</div>
-            <div className="detail-value">{orden.cliente_telefono || '—'}</div>
+            <div className="detail-value">{orden.cliente_activo ? (orden.cliente_telefono || '—') : '—'}</div>
           </div>
           <div className="detail-item">
             <div className="detail-label">Patente</div>
@@ -231,11 +230,28 @@ export default function OrdenDetalle() {
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 120px 80px auto', gap: 10, alignItems: 'end' }}>
               <div className="form-group">
                 <label className="form-label">Descripción *</label>
-                <input className="form-control" value={itemForm.descripcion} onChange={e => setItemForm(f => ({ ...f, descripcion: e.target.value }))} required autoFocus />
+                <input 
+                  className="form-control" 
+                  value={itemForm.descripcion} 
+                  onChange={e => setItemForm(f => ({ ...f, descripcion: e.target.value }))} 
+                  required autoFocus 
+                  disabled={itemForm.tipo === 'mano_de_obra'}
+                />
               </div>
               <div className="form-group">
                 <label className="form-label">Tipo</label>
-                <select className="form-control" value={itemForm.tipo} onChange={e => setItemForm(f => ({ ...f, tipo: e.target.value }))}>
+                <select 
+                  className="form-control" 
+                  value={itemForm.tipo} 
+                  onChange={e => {
+                    const newTipo = e.target.value;
+                    if (newTipo === 'mano_de_obra') {
+                      setItemForm(f => ({ ...f, tipo: newTipo, descripcion: 'Mano de obra', cantidad: 1 }));
+                    } else {
+                      setItemForm(f => ({ ...f, tipo: newTipo }));
+                    }
+                  }}
+                >
                   <option value="repuesto">Repuesto</option>
                   <option value="mano_de_obra">Mano de obra</option>
                 </select>
@@ -246,7 +262,13 @@ export default function OrdenDetalle() {
               </div>
               <div className="form-group">
                 <label className="form-label">Cant.</label>
-                <input className="form-control" type="number" min="1" value={itemForm.cantidad} onChange={e => setItemForm(f => ({ ...f, cantidad: e.target.value }))} />
+                <input 
+                  className="form-control" 
+                  type="number" min="1" 
+                  value={itemForm.cantidad} 
+                  onChange={e => setItemForm(f => ({ ...f, cantidad: e.target.value }))} 
+                  disabled={itemForm.tipo === 'mano_de_obra'}
+                />
               </div>
               <button type="submit" className="btn btn-primary btn-sm" disabled={addingItem} style={{ alignSelf: 'flex-end' }}>
                 {addingItem ? '...' : '✓'}

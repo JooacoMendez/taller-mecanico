@@ -39,11 +39,12 @@ async function descargarRecibo(req, res) {
     );
 
     const orden = { ...ordenRes.rows[0], items: itemsRes.rows };
+    const patenteCarpeta = orden.patente || 'SinPatente';
+    const dateStr = new Date().toISOString().split('T')[0];
 
     // Buscar si ya existe el PDF generado localmente
     try {
       const docsDir = path.join(os.homedir(), 'Documents');
-      const patenteCarpeta = orden.patente || 'SinPatente';
       const dirDestino = path.join(docsDir, 'TallerApp', patenteCarpeta);
       if (fs.existsSync(dirDestino)) {
         const files = fs.readdirSync(dirDestino);
@@ -54,7 +55,7 @@ async function descargarRecibo(req, res) {
           console.log(`Retornando recibo existente: ${filePath}`);
           const pdfBuffer = fs.readFileSync(filePath);
           res.setHeader('Content-Type', 'application/pdf');
-          res.setHeader('Content-Disposition', `attachment; filename="recibo-${orden.nro_recibo || id}.pdf"`);
+          res.setHeader('Content-Disposition', `attachment; filename="recibo-${orden.nro_recibo || id}-${patenteCarpeta}-${dateStr}.pdf"`);
           return res.send(pdfBuffer);
         }
       }
@@ -67,14 +68,12 @@ async function descargarRecibo(req, res) {
     // Guardar copia local en Documentos/TallerApp
     try {
       const docsDir = path.join(os.homedir(), 'Documents');
-      const patenteCarpeta = orden.patente || 'SinPatente';
       const dirDestino = path.join(docsDir, 'TallerApp', patenteCarpeta);
       if (!fs.existsSync(dirDestino)) {
         fs.mkdirSync(dirDestino, { recursive: true });
       }
 
-      const dateStr = new Date().toISOString().split('T')[0];
-      const fileName = `${patenteCarpeta} - ${orden.id} ${dateStr}.pdf`;
+      const fileName = `recibo-${orden.nro_recibo}-${patenteCarpeta}-${dateStr}.pdf`;
       const filePath = path.join(dirDestino, fileName);
 
       fs.writeFileSync(filePath, pdfBuffer);
@@ -84,7 +83,7 @@ async function descargarRecibo(req, res) {
     }
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="recibo-${orden.nro_recibo || id}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="recibo-${orden.nro_recibo || id}-${patenteCarpeta}-${dateStr}.pdf"`);
     res.send(pdfBuffer);
   } catch (err) {
     console.error(err);
@@ -128,6 +127,8 @@ async function enviarRecibo(req, res) {
 
     const itemsRes = await pool.query('SELECT * FROM items_orden WHERE orden_id = $1', [id]);
     const ordenCompleta = { ...orden, items: itemsRes.rows };
+    const patenteCarpeta = ordenCompleta.patente || 'SinPatente';
+    const dateStr = new Date().toISOString().split('T')[0];
     
     let pdfBuffer;
     let fileExisted = false;
@@ -135,7 +136,6 @@ async function enviarRecibo(req, res) {
     // Buscar si ya existe el PDF generado localmente
     try {
       const docsDir = path.join(os.homedir(), 'Documents');
-      const patenteCarpeta = ordenCompleta.patente || 'SinPatente';
       const dirDestino = path.join(docsDir, 'TallerApp', patenteCarpeta);
       if (fs.existsSync(dirDestino)) {
         const files = fs.readdirSync(dirDestino);
@@ -160,14 +160,12 @@ async function enviarRecibo(req, res) {
       // Guardar copia local en Documentos/TallerApp
       try {
         const docsDir = path.join(os.homedir(), 'Documents');
-        const patenteCarpeta = ordenCompleta.patente || 'SinPatente';
         const dirDestino = path.join(docsDir, 'TallerApp', patenteCarpeta);
         if (!fs.existsSync(dirDestino)) {
           fs.mkdirSync(dirDestino, { recursive: true });
         }
 
-        const dateStr = new Date().toISOString().split('T')[0];
-        const fileName = `${patenteCarpeta} - ${ordenCompleta.id} ${dateStr}.pdf`;
+        const fileName = `recibo-${ordenCompleta.nro_recibo || id}-${patenteCarpeta}-${dateStr}.pdf`;
         const filePath = path.join(dirDestino, fileName);
 
         fs.writeFileSync(filePath, pdfBuffer);

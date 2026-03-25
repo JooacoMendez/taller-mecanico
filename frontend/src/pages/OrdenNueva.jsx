@@ -3,10 +3,9 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getClientes } from '../api/clientes';
 import { getVehiculos, createVehiculo } from '../api/vehiculos';
 import { createOrden } from '../api/ordenes';
-import { useAuth } from '../context/AuthContext';
 
 export default function OrdenNueva() {
-  const { token } = useAuth();
+  const token = null;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preClienteId = searchParams.get('cliente_id');
