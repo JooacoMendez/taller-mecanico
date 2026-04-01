@@ -1,10 +1,11 @@
-const sqlite3 = require("sqlite3");
-const { open } = require("sqlite");
+const initSqlJs = require("sql.js");
 const path = require("path");
+const fs = require("fs");
 
 class DatabaseService {
     constructor() {
         this.dbInstance = null;
+        this.dbPath = null;
         this.isConnecting = false;
         this.connectionPromise = null;
     }
@@ -16,16 +17,30 @@ class DatabaseService {
         this.isConnecting = true;
         this.connectionPromise = (async () => {
             try {
-                const dbPath =
+                this.dbPath =
                     process.env.SQLITE_PATH ||
                     path.join(__dirname, "..", "..", "database.sqlite");
-                this.dbInstance = await open({
-                    filename: dbPath,
-                    driver: sqlite3.Database,
-                });
+
+                // Ensure the directory exists
+                const dir = path.dirname(this.dbPath);
+                if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir, { recursive: true });
+                }
+
+                const SQL = await initSqlJs();
+
+                // Load existing database if it exists
+                if (fs.existsSync(this.dbPath)) {
+                    const fileBuffer = fs.readFileSync(this.dbPath);
+                    this.dbInstance = new SQL.Database(fileBuffer);
+                } else {
+                    this.dbInstance = new SQL.Database();
+                }
+
                 // Enable foreign keys
-                await this.dbInstance.run("PRAGMA foreign_keys = ON;");
-                console.log(`✅ Conectado a SQLite (${dbPath})`);
+                this.dbInstance.run("PRAGMA foreign_keys = ON;");
+
+                console.log(`✅ Conectado a SQLite (${this.dbPath})`);
             } catch (err) {
                 console.error("❌ Error al conectar a la base de datos:", err);
                 throw err;
@@ -36,35 +51,72 @@ class DatabaseService {
         return this.connectionPromise;
     }
 
+    // Save database to disk (debounced and ASYNCHRONOUS to avoid blocking UI)
+    _save() {
+        if (this.dbInstance && this.dbPath) {
+            if (this.saveTimeout) clearTimeout(this.saveTimeout);
+            this.saveTimeout = setTimeout(() => {
+                const data = this.dbInstance.export();
+                const buffer = Buffer.from(data);
+                // USING ASYNC WRITE SO IT DOESN'T FREEZE THE ELECTRON MAIN PROCESS
+                fs.promises.writeFile(this.dbPath, buffer)
+                    .catch(err => console.error("Error guardando BD:", err));
+            }, 500);
+        }
+    }
+
     // Method that mimics pg pool.query interface
     async query(text, params = []) {
         await this.connect();
 
-        // Convert PostgreSQL positional parameters ($1, $2) to ?1, ?2 for sqlite3 array bindings.
-        // This allows using the same parameter multiple times in the same query (like PG does).
-        let sqliteText = text.replace(/\$(\d+)/g, "?$1");
+        // Convert PostgreSQL positional parameters ($1, $2) to ?
+        // and reorder params to match
+        let sqliteText = text;
+        const dollarParams = text.match(/\$(\d+)/g);
+
+        if (dollarParams) {
+            const reorderedParams = [];
+            sqliteText = text.replace(/\$(\d+)/g, (match, num) => {
+                reorderedParams.push(params[parseInt(num) - 1]);
+                return "?";
+            });
+            params = reorderedParams;
+        }
 
         try {
-            // Is it a SELECT or something else?
             const isSelect = /^\s*(SELECT|WITH)/i.test(sqliteText);
+            const hasReturning = text.toUpperCase().includes("RETURNING");
 
             let rows = [];
             let rowCount = 0;
 
-            if (text.toUpperCase().includes("RETURNING") || isSelect) {
-                rows = await this.dbInstance.all(sqliteText, params);
+            if (hasReturning || isSelect) {
+                const stmt = this.dbInstance.prepare(sqliteText);
+                if (params.length > 0) {
+                    stmt.bind(params);
+                }
+                rows = [];
+                while (stmt.step()) {
+                    const row = stmt.getAsObject();
+                    rows.push(row);
+                }
+                stmt.free();
                 rowCount = rows.length;
             } else {
-                const result = await this.dbInstance.run(sqliteText, params);
-                rowCount = result.changes;
+                this.dbInstance.run(sqliteText, params);
+                rowCount = this.dbInstance.getRowsModified();
+            }
+
+            // Save after write operations
+            if (!isSelect) {
+                this._save();
             }
 
             return { rows, rowCount };
         } catch (error) {
-            // In sqlite, UNIQUE constraint error is SQLITE_CONSTRAINT
-            // Let's mock pg's '23505' code for unique violation to not break controllers
+            // Mock pg's '23505' code for unique violation to not break controllers
             if (
-                error.code === "SQLITE_CONSTRAINT" ||
+                error.message &&
                 error.message.includes("UNIQUE constraint failed")
             ) {
                 error.code = "23505";
@@ -73,10 +125,25 @@ class DatabaseService {
         }
     }
 
+    // Execute raw SQL (for init scripts)
+    exec(sql) {
+        if (this.dbInstance) {
+            this.dbInstance.run(sql);
+            this._save();
+        }
+    }
+
     // Allow closing the connection if needed
     async close() {
         if (this.dbInstance) {
-            await this.dbInstance.close();
+            if (this.saveTimeout) clearTimeout(this.saveTimeout);
+            // Force synchronous immediate save on close
+            if (this.dbPath) {
+                const data = this.dbInstance.export();
+                const buffer = Buffer.from(data);
+                fs.writeFileSync(this.dbPath, buffer);
+            }
+            this.dbInstance.close();
             this.dbInstance = null;
         }
     }

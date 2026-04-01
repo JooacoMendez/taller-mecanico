@@ -1,11 +1,21 @@
-const { Resend } = require('resend');
+const nodemailer = require('nodemailer');
 
 async function enviarEmail(destinatario, pdfBuffer, nroRecibo) {
-  const resend = new Resend(process.env.RESEND_API_KEY);
   const tallerNombre = process.env.TALLER_NOMBRE || 'Taller Mecánico';
 
-  const { error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+  // Create transporter using SMTP config from env
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: {
+      user: process.env.SMTP_USER || process.env.EMAIL_FROM,
+      pass: process.env.SMTP_PASS || '',
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_FROM || 'taller@ejemplo.com',
     to: destinatario,
     subject: `Recibo ${nroRecibo} - ${tallerNombre}`,
     html: `
@@ -20,14 +30,13 @@ async function enviarEmail(destinatario, pdfBuffer, nroRecibo) {
     attachments: [
       {
         filename: `${nroRecibo}.pdf`,
-        content: pdfBuffer.toString('base64'),
+        content: pdfBuffer,
       },
     ],
-  });
+  };
 
-  if (error) {
-    throw new Error(`Error al enviar email: ${error.message}`);
-  }
+  const info = await transporter.sendMail(mailOptions);
+  console.log(`Email enviado: ${info.messageId}`);
 }
 
 module.exports = { enviarEmail };

@@ -1,0 +1,66 @@
+{
+    "name": "taller-mecanico",
+    "version": "1.0.0",
+    "description": "Sistema de gestión de taller mecánico con Electron",
+    "main": "electron/main.js",
+    "homepage": "./",
+    "scripts": {
+        "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:electron\"",
+        "dev:backend": "cd backend && npm run dev",
+        "dev:frontend": "cd frontend && npm run dev",
+        "dev:electron": "wait-on http://localhost:5173 && electron .",
+        "build": "npm run build:frontend && npm run build:backend",
+        "build:frontend": "cd frontend && npm run build",
+        "build:backend": "echo 'Backend listo'",
+        "pack": "electron-builder --dir",
+        "dist": "npm run build && electron-builder",
+        "dist:win": "npm run build && electron-builder --win",
+        "dist:mac": "npm run build && electron-builder --mac",
+        "dist:linux": "npm run build && electron-builder --linux"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.5",
+        "express": "^4.18.3",
+        "nodemailer": "^6.9.13",
+        "pdfkit": "^0.15.0",
+        "sql.js": "^1.11.0",
+        "xlsx": "^0.18.5"
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2",
+        "electron": "latest",
+        "electron-builder": "^24.9.1",
+        "wait-on": "^7.2.0"
+    },
+    "build": {
+        "appId": "com.tallermecanico.app",
+        "productName": "TallerApp",
+        "asar": true,
+        "files": [
+            "electron/**/*",
+            "backend/src/**/*",
+            "backend/index.js",
+            "backend/package.json",
+            "backend/.env",
+            "frontend/dist/**/*",
+            "node_modules/**/*"
+        ],
+        "directories": {
+            "buildResources": "electron/assets"
+        },
+        "win": {
+            "target": [
+                {
+                    "target": "portable",
+                    "arch": [
+                        "x64"
+                    ]
+                }
+            ]
+        },
+        "portable": {
+            "artifactName": "TallerApp.exe"
+        }
+    }
+}

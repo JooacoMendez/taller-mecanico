@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOrden, cambiarEstadoOrden, addItem, deleteItem, deleteOrden, finalizarPresupuesto } from '../api/ordenes';
+import { API_BASE_URL } from '../api/client';
 import BadgeEstado from '../components/BadgeEstado';
 import ModalPago from '../components/ModalPago';
 
@@ -80,7 +81,7 @@ export default function OrdenDetalle() {
   };
 
   const handleDescargarPDF = () => {
-    window.open(`/api/ordenes/${id}/recibo?token=${token}`, '_blank');
+    window.open(`${API_BASE_URL}/api/ordenes/${id}/recibo?token=${token}`, '_blank');
   };
 
   const handleFinalizarPresupuesto = async () => {
